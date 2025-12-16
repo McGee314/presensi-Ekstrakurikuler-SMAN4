@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum untuk role user
+enum UserRole {
+  SISWA
+  PELATIH
+  ADMIN
+}
+
+// Enum untuk status kehadiran
+enum AttendanceStatus {
+  HADIR
+  ALPA
+  IZIN
+  SAKIT
+}
+
+// Model User utama
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nama      String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi
+  studentProfile StudentProfile?
+  coachProfile   CoachProfile?
+
+  @@map("users")
+}
+
+// Profile untuk Siswa
+model StudentProfile {
+  id        String   @id @default(cuid())
+  nis       String   @unique
+  kelas     String // contoh: "10A", "11B", "12C"
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi
+  studentEkskul StudentEkskul[]
+
+  @@map("student_profiles")
+}
+
+// Profile untuk Pelatih
+model CoachProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi ke ekstrakurikuler yang dibimbing
+  ekskuls Ekskul[]
+
+  @@map("coach_profiles")
+}
+
+// Model Ekstrakurikuler
+model Ekskul {
+  id          String   @id @default(cuid())
+  nama        String
+  kode        String   @unique // contoh: "BASKET", "FUTSAL", "TEATER"
+  deskripsi   String?
+  coachId     String
+  coach       CoachProfile @relation(fields: [coachId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relasi
+  studentEkskul StudentEkskul[]
+
+  @@map("ekskuls")
+}
+
+// Relasi Many-to-Many antara Siswa dan Ekskul
+model StudentEkskul {
+  id              String   @id @default(cuid())
+  studentId       String
+  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  ekskulId        String
+  ekskul          Ekskul   @relation(fields: [ekskulId], references: [id], onDelete: Cascade)
+  tanggalDaftar   DateTime @default(now())
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relasi
+  attendances     Attendance[]
+  grades          Grade[]
+
+  @@unique([studentId, ekskulId])
+  @@map("student_ekskul")
+}
+
+// Model Absensi
+model Attendance {
+  id                String           @id @default(cuid())
+  tanggal           DateTime
+  status            AttendanceStatus @default(ALPA)
+  keterangan        String?
+  studentEkskulId   String
+  studentEkskul     StudentEkskul    @relation(fields: [studentEkskulId], references: [id], onDelete: Cascade)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([studentEkskulId, tanggal])
+  @@map("attendances")
+}
+
+// Model Nilai
+model Grade {
+  id                String        @id @default(cuid())
+  semester          String        // contoh: "Ganjil 2023/2024", "Genap 2023/2024"
+  nilai             Float         // nilai angka
+  predikat          String?       // A, B, C, D
+  catatan           String?
+  studentEkskulId   String
+  studentEkskul     StudentEkskul @relation(fields: [studentEkskulId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([studentEkskulId, semester])
+  @@map("grades")
+}
+
+// Model untuk menyimpan template Excel yang diupload admin
+model FormatTemplate {
+  id          String   @id @default(cuid())
+  namaFile    String
+  semester    String   // contoh: "Ganjil 2023/2024"
+  pathFile    String   // path ke file di storage
+  description String?
+  uploadedBy  String   // user id admin yang upload
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("format_templates")
+}
