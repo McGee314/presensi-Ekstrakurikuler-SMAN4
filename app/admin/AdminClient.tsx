@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { DAY_OPTIONS, formatSchedule } from '@/lib/schedule'
 
-export default function AdminClient({ user, users, ekskuls, templates }: any) {
+export default function AdminClient({ user, users, ekskuls, coaches, templates }: any) {
   const router = useRouter()
   const [selectedTab, setSelectedTab] = useState<'users' | 'ekskul' | 'templates'>('users')
   const [loading, setLoading] = useState(false)
@@ -31,6 +32,123 @@ export default function AdminClient({ user, users, ekskuls, templates }: any) {
         ;(e.target as HTMLFormElement).reset()
       } else {
         setMessage(data.error || 'Gagal mengupload template')
+      }
+    } catch (error) {
+      setMessage('Terjadi kesalahan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    const formData = new FormData(e.currentTarget)
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nama: formData.get('nama'),
+          email: formData.get('email'),
+          password: formData.get('password'),
+          role: formData.get('role'),
+          nis: formData.get('nis'),
+          kelas: formData.get('kelas'),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage('User berhasil dibuat!')
+        router.refresh()
+        ;(e.target as HTMLFormElement).reset()
+      } else {
+        setMessage(data.error || 'Gagal membuat user')
+      }
+    } catch (error) {
+      setMessage('Terjadi kesalahan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateEkskul = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    const formData = new FormData(e.currentTarget)
+
+    try {
+      const response = await fetch('/api/admin/ekskul', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nama: formData.get('nama'),
+          kode: formData.get('kode'),
+          deskripsi: formData.get('deskripsi'),
+          coachId: formData.get('coachId'),
+          hari: formData.get('hari'),
+          jamMulai: formData.get('jamMulai'),
+          jamSelesai: formData.get('jamSelesai'),
+          lokasi: formData.get('lokasi'),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage('Ekstrakurikuler berhasil dibuat!')
+        router.refresh()
+        ;(e.target as HTMLFormElement).reset()
+      } else {
+        setMessage(data.error || 'Gagal membuat ekstrakurikuler')
+      }
+    } catch (error) {
+      setMessage('Terjadi kesalahan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateSchedule = async (ekskulId: string, e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    const formData = new FormData(e.currentTarget)
+
+    try {
+      const response = await fetch('/api/admin/ekskul/schedule', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ekskulId,
+          hari: formData.get('hari'),
+          jamMulai: formData.get('jamMulai'),
+          jamSelesai: formData.get('jamSelesai'),
+          lokasi: formData.get('lokasi'),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage('Jadwal berhasil disimpan!')
+        router.refresh()
+      } else {
+        setMessage(data.error || 'Gagal menyimpan jadwal')
       }
     } catch (error) {
       setMessage('Terjadi kesalahan')
@@ -107,12 +225,77 @@ export default function AdminClient({ user, users, ekskuls, templates }: any) {
         {/* Tab Content */}
         {selectedTab === 'users' && (
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Daftar User</h2>
-              <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-                + Tambah User
-              </button>
+            <div className="bg-white p-6 rounded-lg shadow mb-6">
+              <h2 className="text-xl font-semibold mb-4">Tambah User</h2>
+              <form onSubmit={handleCreateUser} className="grid md:grid-cols-4 gap-3 items-end">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Nama</label>
+                  <input
+                    type="text"
+                    name="nama"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                    minLength={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
+                  <select
+                    name="role"
+                    defaultValue="SISWA"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="SISWA">SISWA</option>
+                    <option value="PELATIH">PELATIH</option>
+                    <option value="SUPERVISOR">SUPERVISOR</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">NIS Siswa</label>
+                  <input
+                    type="text"
+                    name="nis"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Kelas Siswa</label>
+                  <input
+                    type="text"
+                    name="kelas"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="md:col-span-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+                >
+                  Tambah User
+                </button>
+              </form>
             </div>
+
+            <h2 className="text-xl font-semibold mb-4">Daftar User</h2>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
@@ -148,6 +331,7 @@ export default function AdminClient({ user, users, ekskuls, templates }: any) {
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           u.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
                           u.role === 'PELATIH' ? 'bg-green-100 text-green-800' :
+                          u.role === 'SUPERVISOR' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-blue-100 text-blue-800'
                         }`}>
                           {u.role}
@@ -155,8 +339,9 @@ export default function AdminClient({ user, users, ekskuls, templates }: any) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {u.studentProfile && `NIS: ${u.studentProfile.nis}, Kelas: ${u.studentProfile.kelas}`}
-                        {u.coachProfile && 'Coach Profile'}
-                        {!u.studentProfile && !u.coachProfile && '-'}
+                        {u.coachProfile && 'Pelatih'}
+                        {u.supervisorProfile && 'Supervisor Sekolah'}
+                        {!u.studentProfile && !u.coachProfile && !u.supervisorProfile && '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -172,12 +357,99 @@ export default function AdminClient({ user, users, ekskuls, templates }: any) {
 
         {selectedTab === 'ekskul' && (
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Daftar Ekstrakurikuler</h2>
-              <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-                + Tambah Ekskul
-              </button>
+            <div className="bg-white p-6 rounded-lg shadow mb-6">
+              <h2 className="text-xl font-semibold mb-4">Tambah Ekstrakurikuler</h2>
+              <form onSubmit={handleCreateEkskul} className="grid md:grid-cols-4 gap-3 items-end">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Nama</label>
+                  <input
+                    type="text"
+                    name="nama"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Kode</label>
+                  <input
+                    type="text"
+                    name="kode"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Pelatih</label>
+                  <select
+                    name="coachId"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="">Pilih pelatih</option>
+                    {coaches.map((coach: any) => (
+                      <option key={coach.id} value={coach.id}>
+                        {coach.user.nama}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Hari</label>
+                  <select
+                    name="hari"
+                    defaultValue="SENIN"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    {DAY_OPTIONS.map((hari) => (
+                      <option key={hari} value={hari}>
+                        {hari}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Mulai</label>
+                  <input
+                    type="time"
+                    name="jamMulai"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Selesai</label>
+                  <input
+                    type="time"
+                    name="jamSelesai"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Lokasi</label>
+                  <input
+                    type="text"
+                    name="lokasi"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Deskripsi</label>
+                  <input
+                    type="text"
+                    name="deskripsi"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading || coaches.length === 0}
+                  className="md:col-span-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+                >
+                  Tambah Ekstrakurikuler
+                </button>
+              </form>
             </div>
+
+            <h2 className="text-xl font-semibold mb-4">Daftar Ekstrakurikuler</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {ekskuls.map((ekskul: any) => (
@@ -187,17 +459,70 @@ export default function AdminClient({ user, users, ekskuls, templates }: any) {
                   <p className="text-sm text-gray-600 mb-1">
                     Pelatih: {ekskul.coach.user.nama}
                   </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Jadwal: {formatSchedule(ekskul.hari, ekskul.jamMulai, ekskul.jamSelesai)}
+                  </p>
+                  {ekskul.lokasi && (
+                    <p className="text-sm text-gray-600 mb-1">
+                      Lokasi: {ekskul.lokasi}
+                    </p>
+                  )}
                   <p className="text-sm text-gray-600 mb-4">
                     Jumlah Siswa: {ekskul._count.studentEkskul}
                   </p>
-                  <div className="flex space-x-2">
-                    <button className="flex-1 bg-blue-600 text-white py-2 px-3 rounded hover:bg-blue-700 text-sm">
-                      Edit
+                  <form onSubmit={(e) => handleUpdateSchedule(ekskul.id, e)} className="space-y-3 border-t pt-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Hari</label>
+                      <select
+                        name="hari"
+                        defaultValue={ekskul.hari || 'SENIN'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      >
+                        {DAY_OPTIONS.map((hari) => (
+                          <option key={hari} value={hari}>
+                            {hari}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Mulai</label>
+                        <input
+                          type="time"
+                          name="jamMulai"
+                          defaultValue={ekskul.jamMulai || ''}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Selesai</label>
+                        <input
+                          type="time"
+                          name="jamSelesai"
+                          defaultValue={ekskul.jamSelesai || ''}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Lokasi</label>
+                      <input
+                        type="text"
+                        name="lokasi"
+                        defaultValue={ekskul.lokasi || ''}
+                        placeholder="Lapangan / ruang kegiatan"
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-purple-600 text-white py-2 px-3 rounded hover:bg-purple-700 disabled:bg-gray-400 text-sm"
+                    >
+                      Simpan Jadwal
                     </button>
-                    <button className="flex-1 bg-red-600 text-white py-2 px-3 rounded hover:bg-red-700 text-sm">
-                      Hapus
-                    </button>
-                  </div>
+                  </form>
                 </div>
               ))}
             </div>

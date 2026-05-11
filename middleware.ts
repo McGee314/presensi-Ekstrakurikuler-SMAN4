@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protected routes
-  const protectedRoutes = ['/siswa', '/pelatih', '/admin']
+  const protectedRoutes = ['/siswa', '/pelatih', '/supervisor', '/admin']
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
   // If trying to access protected route without token, redirect to login
@@ -23,6 +23,9 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/pelatih') && token.role !== 'PELATIH') {
       return NextResponse.redirect(new URL('/login', request.url))
     }
+    if (pathname.startsWith('/supervisor') && token.role !== 'SUPERVISOR') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
     if (pathname.startsWith('/admin') && token.role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/login', request.url))
     }
@@ -36,6 +39,9 @@ export async function middleware(request: NextRequest) {
     if (token.role === 'PELATIH') {
       return NextResponse.redirect(new URL('/pelatih', request.url))
     }
+    if (token.role === 'SUPERVISOR') {
+      return NextResponse.redirect(new URL('/supervisor', request.url))
+    }
     if (token.role === 'ADMIN') {
       return NextResponse.redirect(new URL('/admin', request.url))
     }
@@ -45,5 +51,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/siswa/:path*', '/pelatih/:path*', '/admin/:path*', '/login']
+  matcher: ['/siswa/:path*', '/pelatih/:path*', '/supervisor/:path*', '/admin/:path*', '/login']
 }

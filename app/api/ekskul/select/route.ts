@@ -84,6 +84,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const activeEkskulCount = await prisma.studentEkskul.count({
+      where: {
+        studentId: studentProfile.id,
+        isActive: true,
+      },
+    })
+
+    if (activeEkskulCount >= 3) {
+      return NextResponse.json(
+        { error: 'Siswa hanya dapat memilih maksimal 3 ekstrakurikuler' },
+        { status: 400 }
+      )
+    }
+
     // Daftarkan siswa ke ekstrakurikuler
     const studentEkskul = await prisma.studentEkskul.create({
       data: {

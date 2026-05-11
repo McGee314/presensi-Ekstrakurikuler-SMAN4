@@ -21,6 +21,7 @@ export const authOptions: NextAuthOptions = {
           include: {
             studentProfile: true,
             coachProfile: true,
+            supervisorProfile: true,
           }
         })
 

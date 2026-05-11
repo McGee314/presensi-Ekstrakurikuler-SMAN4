@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const updateGradeSchema = z.object({
   studentEkskulId: z.string(),
   semester: z.string(),
@@ -26,6 +28,24 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const { studentEkskulId, semester, nilai, predikat, catatan } = updateGradeSchema.parse(body)
+
+    const studentEkskul = await prisma.studentEkskul.findFirst({
+      where: {
+        id: studentEkskulId,
+        ekskul: {
+          coach: {
+            userId: session.user.id,
+          },
+        },
+      },
+    })
+
+    if (!studentEkskul) {
+      return NextResponse.json(
+        { error: 'Data siswa tidak ditemukan untuk pelatih ini' },
+        { status: 404 }
+      )
+    }
 
     // Upsert nilai (update jika ada, create jika belum ada)
     const grade = await prisma.grade.upsert({

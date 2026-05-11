@@ -1,27 +1,35 @@
 # 📚 Sistem Absensi & Penilaian Ekstrakurikuler
 
-Aplikasi web untuk manajemen absensi dan penilaian ekstrakurikuler dengan tiga role: **Siswa**, **Pelatih**, dan **Admin**.
+Aplikasi web untuk manajemen absensi dan penilaian ekstrakurikuler dengan empat role: **Siswa**, **Pelatih**, **Supervisor**, dan **Admin**.
 
 ## 🎯 Fitur Utama
 
 ### Portal Siswa (`/siswa`)
 - ✅ Login / Registrasi
-- ✅ Memilih ekstrakurikuler (bisa lebih dari 1)
-- ✅ Melakukan absensi kehadiran
+- ✅ Memilih maksimal 3 ekstrakurikuler
+- ✅ Melakukan absensi kehadiran hanya saat sesi dibuka pelatih
 - ✅ Melihat rekap absensi dan nilai
 - ✅ Download raport ekstrakurikuler
 
 ### Portal Pelatih (`/pelatih`)
 - ✅ Login
 - ✅ Melihat daftar siswa per ekstrakurikuler
+- ✅ Membuka sesi absensi sesuai jadwal admin
 - ✅ Mengubah status kehadiran siswa (hadir/alpa/izin/sakit)
+- ✅ Menutup sesi dengan ringkasan kegiatan harian
 - ✅ Input atau mengubah nilai siswa per semester
 - ✅ Dashboard kehadiran & nilai
 - ✅ Download rekap nilai per ekstrakurikuler
 
+### Portal Supervisor (`/supervisor`)
+- ✅ Melihat skor absensi setiap pelatih dan ekstrakurikuler
+- ✅ Melihat skor kehadiran setiap siswa
+- ✅ Melihat hasil akhir/nilai semester setiap siswa
+
 ### Portal Admin (`/admin`)
 - ✅ Manajemen user (siswa, pelatih, admin)
 - ✅ Manajemen daftar ekstrakurikuler
+- ✅ Menentukan hari, jam, dan lokasi setiap ekstrakurikuler
 - ✅ Upload template Excel untuk format nilai
 - ✅ Generate raport per siswa atau per ekstrakurikuler
 

@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const updateAttendanceSchema = z.object({
   attendanceId: z.string(),
   status: z.enum(['HADIR', 'ALPA', 'IZIN', 'SAKIT']),
@@ -25,7 +27,26 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { attendanceId, status, keterangan } = updateAttendanceSchema.parse(body)
 
-    // Update absensi
+    const existingAttendance = await prisma.attendance.findFirst({
+      where: {
+        id: attendanceId,
+        studentEkskul: {
+          ekskul: {
+            coach: {
+              userId: session.user.id,
+            },
+          },
+        },
+      },
+    })
+
+    if (!existingAttendance) {
+      return NextResponse.json(
+        { error: 'Data absensi tidak ditemukan untuk pelatih ini' },
+        { status: 404 }
+      )
+    }
+
     const attendance = await prisma.attendance.update({
       where: { id: attendanceId },
       data: {
@@ -97,15 +118,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let whereClause: any = {}
-
-    if (ekskulId) {
-      whereClause.ekskulId = ekskulId
-    }
-
     // Ambil semua siswa di ekstrakurikuler yang dibimbing
     const studentEkskuls = await prisma.studentEkskul.findMany({
-      where: whereClause,
+      where: {
+        ...(ekskulId ? { ekskulId } : {}),
+        ekskul: {
+          coachId: coachProfile.id,
+        },
+      },
       include: {
         student: {
           include: {
@@ -113,16 +133,18 @@ export async function GET(request: NextRequest) {
           }
         },
         ekskul: true,
-        attendances: tanggal ? {
-          where: {
-            tanggal: new Date(tanggal)
-          }
-        } : {
-          orderBy: {
-            tanggal: 'desc'
-          },
-          take: 10
-        }
+        attendances: tanggal
+          ? {
+              where: {
+                tanggal: new Date(tanggal),
+              },
+            }
+          : {
+              orderBy: {
+                tanggal: 'desc',
+              },
+              take: 10,
+            },
       }
     })
 

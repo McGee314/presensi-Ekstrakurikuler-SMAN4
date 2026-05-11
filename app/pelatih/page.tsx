@@ -30,7 +30,35 @@ export default async function PelatihPage() {
                 },
                 take: 10
               },
-              grades: true
+              grades: {
+                orderBy: {
+                  createdAt: 'desc'
+                }
+              }
+            }
+          },
+          attendanceSessions: {
+            orderBy: {
+              tanggal: 'desc'
+            },
+            take: 12,
+            include: {
+              attendances: {
+                include: {
+                  studentEkskul: {
+                    include: {
+                      student: {
+                        include: {
+                          user: true
+                        }
+                      }
+                    }
+                  }
+                },
+                orderBy: {
+                  createdAt: 'asc'
+                }
+              }
             }
           }
         }

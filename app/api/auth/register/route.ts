@@ -7,7 +7,7 @@ const registerSchema = z.object({
   email: z.string().email('Email tidak valid'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
   nama: z.string().min(3, 'Nama minimal 3 karakter'),
-  role: z.enum(['SISWA', 'PELATIH', 'ADMIN']),
+  role: z.enum(['SISWA', 'PELATIH', 'SUPERVISOR', 'ADMIN']),
   nis: z.string().optional(),
   kelas: z.string().optional(),
 })
@@ -56,6 +56,14 @@ export async function POST(request: NextRequest) {
     // Jika role PELATIH, buat coach profile
     if (validatedData.role === 'PELATIH') {
       await prisma.coachProfile.create({
+        data: {
+          userId: user.id,
+        }
+      })
+    }
+
+    if (validatedData.role === 'SUPERVISOR') {
+      await prisma.supervisorProfile.create({
         data: {
           userId: user.id,
         }

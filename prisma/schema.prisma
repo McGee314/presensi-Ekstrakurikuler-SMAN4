@@ -14,6 +14,7 @@ datasource db {
 enum UserRole {
   SISWA
   PELATIH
+  SUPERVISOR
   ADMIN
 }
 
@@ -23,6 +24,23 @@ enum AttendanceStatus {
   ALPA
   IZIN
   SAKIT
+}
+
+// Enum hari untuk jadwal ekstrakurikuler
+enum DayOfWeek {
+  SENIN
+  SELASA
+  RABU
+  KAMIS
+  JUMAT
+  SABTU
+  MINGGU
+}
+
+// Enum status sesi absensi
+enum AttendanceSessionStatus {
+  OPEN
+  CLOSED
 }
 
 // Model User utama
@@ -38,6 +56,7 @@ model User {
   // Relasi
   studentProfile StudentProfile?
   coachProfile   CoachProfile?
+  supervisorProfile SupervisorProfile?
 
   @@map("users")
 }
@@ -72,12 +91,27 @@ model CoachProfile {
   @@map("coach_profiles")
 }
 
+// Profile untuk Supervisor sekolah
+model SupervisorProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("supervisor_profiles")
+}
+
 // Model Ekstrakurikuler
 model Ekskul {
   id          String   @id @default(cuid())
   nama        String
   kode        String   @unique // contoh: "BASKET", "FUTSAL", "TEATER"
   deskripsi   String?
+  hari        DayOfWeek?
+  jamMulai    String?  // format "HH:mm"
+  jamSelesai  String?  // format "HH:mm"
+  lokasi      String?
   coachId     String
   coach       CoachProfile @relation(fields: [coachId], references: [id])
   createdAt   DateTime @default(now())
@@ -85,6 +119,7 @@ model Ekskul {
 
   // Relasi
   studentEkskul StudentEkskul[]
+  attendanceSessions AttendanceSession[]
 
   @@map("ekskuls")
 }
@@ -115,13 +150,33 @@ model Attendance {
   tanggal           DateTime
   status            AttendanceStatus @default(ALPA)
   keterangan        String?
+  sessionId         String?
+  attendanceSession AttendanceSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   studentEkskulId   String
   studentEkskul     StudentEkskul    @relation(fields: [studentEkskulId], references: [id], onDelete: Cascade)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
   @@unique([studentEkskulId, tanggal])
+  @@unique([studentEkskulId, sessionId])
   @@map("attendances")
+}
+
+// Sesi absensi yang dibuka pelatih sesuai jadwal admin
+model AttendanceSession {
+  id          String                  @id @default(cuid())
+  tanggal     DateTime
+  status      AttendanceSessionStatus @default(OPEN)
+  summary     String?
+  closedAt    DateTime?
+  ekskulId    String
+  ekskul      Ekskul                  @relation(fields: [ekskulId], references: [id], onDelete: Cascade)
+  attendances Attendance[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([ekskulId, tanggal])
+  @@map("attendance_sessions")
 }
 
 // Model Nilai

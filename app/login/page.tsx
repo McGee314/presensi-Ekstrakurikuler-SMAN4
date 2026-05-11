@@ -27,8 +27,19 @@ export default function LoginPage() {
       if (result?.error) {
         setError(result.error)
       } else {
-        // Redirect berdasarkan role akan ditangani di middleware atau di client
-        router.push('/siswa') // Default ke siswa, nanti bisa diatur
+        const sessionResponse = await fetch('/api/auth/session')
+        const session = await sessionResponse.json()
+        const role = session?.user?.role
+
+        if (role === 'ADMIN') {
+          router.push('/admin')
+        } else if (role === 'PELATIH') {
+          router.push('/pelatih')
+        } else if (role === 'SUPERVISOR') {
+          router.push('/supervisor')
+        } else {
+          router.push('/siswa')
+        }
         router.refresh()
       }
     } catch (err) {

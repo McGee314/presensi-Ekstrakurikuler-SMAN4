@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { formatSchedule } from '@/lib/schedule'
 
 export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
   const router = useRouter()
@@ -38,7 +39,9 @@ export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
     }
   }
 
-  const handleAbsensi = async (studentEkskulId: string) => {
+  const selectedEkskulCount = studentProfile?.studentEkskul?.filter((se: any) => se.isActive).length || 0
+
+  const handleAbsensi = async (studentEkskulId: string, sessionId: string) => {
     setLoading(true)
     setMessage('')
 
@@ -50,7 +53,7 @@ export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
         },
         body: JSON.stringify({
           studentEkskulId,
-          tanggal: new Date().toISOString(),
+          sessionId,
           status: 'HADIR',
         }),
       })
@@ -69,6 +72,8 @@ export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
       setLoading(false)
     }
   }
+
+  const successMessage = message.toLowerCase().includes('berhasil')
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -94,7 +99,7 @@ export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
       {/* Message */}
       {message && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-          <div className={`p-4 rounded-lg ${message.includes('Berhasil') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          <div className={`p-4 rounded-lg ${successMessage ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             {message}
           </div>
         </div>
@@ -141,17 +146,29 @@ export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
         <div className="mt-6">
           {selectedTab === 'ekskul' && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Ekstrakurikuler yang Tersedia</h2>
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+                <h2 className="text-xl font-semibold">Ekstrakurikuler yang Tersedia</h2>
+                <span className="text-sm text-gray-600 bg-white px-3 py-2 rounded-lg shadow-sm">
+                  Dipilih: {selectedEkskulCount}/3
+                </span>
+              </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {allEkskuls.map((ekskul: any) => {
                   const isJoined = studentProfile?.studentEkskul.some(
                     (se: any) => se.ekskulId === ekskul.id
                   )
+                  const isLimitReached = selectedEkskulCount >= 3
                   
                   return (
                     <div key={ekskul.id} className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">{ekskul.nama}</h3>
                       <p className="text-sm text-gray-600 mb-2">Kode: {ekskul.kode}</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Jadwal: {formatSchedule(ekskul.hari, ekskul.jamMulai, ekskul.jamSelesai)}
+                      </p>
+                      {ekskul.lokasi && (
+                        <p className="text-sm text-gray-600 mb-2">Lokasi: {ekskul.lokasi}</p>
+                      )}
                       <p className="text-sm text-gray-600 mb-4">
                         Pelatih: {ekskul.coach.user.nama}
                       </p>
@@ -162,6 +179,13 @@ export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
                           className="w-full bg-gray-300 text-gray-600 py-2 rounded-lg cursor-not-allowed"
                         >
                           Sudah Terdaftar
+                        </button>
+                      ) : isLimitReached ? (
+                        <button
+                          disabled
+                          className="w-full bg-gray-300 text-gray-600 py-2 rounded-lg cursor-not-allowed"
+                        >
+                          Maksimal 3 Ekskul
                         </button>
                       ) : (
                         <button
@@ -184,27 +208,35 @@ export default function SiswaClient({ user, studentProfile, allEkskuls }: any) {
               <h2 className="text-xl font-semibold mb-4">Absensi Hari Ini</h2>
               <div className="grid md:grid-cols-2 gap-4 mb-8">
                 {studentProfile?.studentEkskul.map((se: any) => {
-                  const todayAttendance = se.attendances.find(
-                    (att: any) =>
-                      new Date(att.tanggal).toDateString() === new Date().toDateString()
-                  )
+                  const openSession = se.ekskul.attendanceSessions?.[0]
+                  const sessionAttendance = openSession?.attendances?.[0]
 
                   return (
                     <div key={se.id} className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-lg font-semibold mb-2">{se.ekskul.nama}</h3>
                       
-                      {todayAttendance ? (
+                      {!openSession ? (
+                        <div className="bg-gray-100 text-gray-700 p-3 rounded">
+                          Belum ada sesi absensi yang dibuka pelatih.
+                        </div>
+                      ) : sessionAttendance?.status === 'HADIR' ? (
                         <div className="bg-green-100 text-green-800 p-3 rounded">
-                          Sudah absen hari ini ({todayAttendance.status})
+                          Sudah absen ({sessionAttendance.status}) pada{' '}
+                          {new Date(openSession.tanggal).toLocaleDateString('id-ID')}
                         </div>
                       ) : (
-                        <button
-                          onClick={() => handleAbsensi(se.id)}
-                          disabled={loading}
-                          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-                        >
-                          Absen Sekarang
-                        </button>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Sesi dibuka untuk {new Date(openSession.tanggal).toLocaleDateString('id-ID')}
+                          </p>
+                          <button
+                            onClick={() => handleAbsensi(se.id, openSession.id)}
+                            disabled={loading}
+                            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                          >
+                            Absen Sekarang
+                          </button>
+                        </div>
                       )}
                     </div>
                   )

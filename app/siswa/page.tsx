@@ -23,6 +23,25 @@ export default async function SiswaPage() {
                 include: {
                   user: true
                 }
+              },
+              attendanceSessions: {
+                where: {
+                  status: 'OPEN'
+                },
+                include: {
+                  attendances: {
+                    where: {
+                      studentEkskul: {
+                        student: {
+                          userId: session.user.id
+                        }
+                      }
+                    }
+                  }
+                },
+                orderBy: {
+                  tanggal: 'desc'
+                }
               }
             }
           },
@@ -48,6 +67,11 @@ export default async function SiswaPage() {
       coach: {
         include: {
           user: true
+        }
+      },
+      _count: {
+        select: {
+          studentEkskul: true
         }
       }
     }

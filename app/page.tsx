@@ -13,7 +13,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-4 gap-6">
           <Link href="/siswa" className="group">
             <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
               <div className="text-blue-500 text-5xl mb-4 text-center">👨‍🎓</div>
@@ -46,6 +46,18 @@ export default function Home() {
               </h2>
               <p className="text-gray-600 text-center">
                 Manajemen user dan ekstrakurikuler
+              </p>
+            </div>
+          </Link>
+
+          <Link href="/supervisor" className="group">
+            <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+              <div className="text-yellow-500 text-5xl mb-4 text-center">📊</div>
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2 text-center">
+                Portal Supervisor
+              </h2>
+              <p className="text-gray-600 text-center">
+                Pantau skor absensi dan nilai akhir
               </p>
             </div>
           </Link>

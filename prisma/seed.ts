@@ -1,145 +1,163 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, UserRole, DayOfWeek } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
-async function main() {
-  console.log('🌱 Starting seed...')
+async function upsertUser(email: string, password: string, nama: string, role: UserRole) {
+  const hashedPassword = await bcrypt.hash(password, 10)
 
-  // Create Admin User
-  const adminPassword = await bcrypt.hash('admin123', 10)
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@ekskul.com' },
+  return prisma.user.upsert({
+    where: { email },
+    update: {
+      nama,
+      role,
+    },
+    create: {
+      email,
+      password: hashedPassword,
+      nama,
+      role,
+    },
+  })
+}
+
+async function ensureCoach(email: string, nama: string) {
+  const user = await upsertUser(email, 'coach123', nama, 'PELATIH')
+  const coachProfile = await prisma.coachProfile.upsert({
+    where: { userId: user.id },
     update: {},
     create: {
-      email: 'admin@ekskul.com',
-      password: adminPassword,
-      nama: 'Admin Utama',
-      role: 'ADMIN',
+      userId: user.id,
     },
   })
-  console.log('✅ Admin created:', admin.email)
 
-  // Create Coach Users
-  const coach1Password = await bcrypt.hash('coach123', 10)
-  const coach1 = await prisma.user.create({
-    data: {
-      email: 'coach.basket@ekskul.com',
-      password: coach1Password,
-      nama: 'Coach Basket',
-      role: 'PELATIH',
-      coachProfile: {
-        create: {}
-      }
+  return { user, coachProfile }
+}
+
+async function ensureStudent(email: string, nama: string, nis: string, kelas: string) {
+  const user = await upsertUser(email, 'student123', nama, 'SISWA')
+  const studentProfile = await prisma.studentProfile.upsert({
+    where: { userId: user.id },
+    update: {
+      nis,
+      kelas,
     },
-    include: {
-      coachProfile: true
-    }
-  })
-  console.log('✅ Coach 1 created:', coach1.email)
-
-  const coach2Password = await bcrypt.hash('coach123', 10)
-  const coach2 = await prisma.user.create({
-    data: {
-      email: 'coach.futsal@ekskul.com',
-      password: coach2Password,
-      nama: 'Coach Futsal',
-      role: 'PELATIH',
-      coachProfile: {
-        create: {}
-      }
+    create: {
+      userId: user.id,
+      nis,
+      kelas,
     },
-    include: {
-      coachProfile: true
-    }
   })
-  console.log('✅ Coach 2 created:', coach2.email)
 
-  // Create Ekstrakurikuler
-  const basket = await prisma.ekskul.create({
-    data: {
+  return { user, studentProfile }
+}
+
+async function main() {
+  console.log('Starting seed...')
+
+  const admin = await upsertUser('admin@ekskul.com', 'admin123', 'Admin Utama', 'ADMIN')
+  console.log('Admin ready:', admin.email)
+
+  const supervisor = await upsertUser('supervisor@ekskul.com', 'supervisor123', 'Supervisor Sekolah', 'SUPERVISOR')
+  await prisma.supervisorProfile.upsert({
+    where: { userId: supervisor.id },
+    update: {},
+    create: {
+      userId: supervisor.id,
+    },
+  })
+  console.log('Supervisor ready:', supervisor.email)
+
+  const coachBasket = await ensureCoach('coach.basket@ekskul.com', 'Coach Basket')
+  const coachFutsal = await ensureCoach('coach.futsal@ekskul.com', 'Coach Futsal')
+  const coachTeater = await ensureCoach('coach.teater@ekskul.com', 'Coach Teater')
+
+  const ekskulData = [
+    {
       nama: 'Basket',
       kode: 'BASKET',
       deskripsi: 'Ekstrakurikuler Basket',
-      coachId: coach1.coachProfile!.id,
-    }
-  })
-  console.log('✅ Ekskul created:', basket.nama)
-
-  const futsal = await prisma.ekskul.create({
-    data: {
+      hari: 'SENIN' as DayOfWeek,
+      jamMulai: '15:30',
+      jamSelesai: '17:00',
+      lokasi: 'Lapangan Basket',
+      coachId: coachBasket.coachProfile.id,
+    },
+    {
       nama: 'Futsal',
       kode: 'FUTSAL',
       deskripsi: 'Ekstrakurikuler Futsal',
-      coachId: coach2.coachProfile!.id,
-    }
-  })
-  console.log('✅ Ekskul created:', futsal.nama)
-
-  // Create Student Users
-  const student1Password = await bcrypt.hash('student123', 10)
-  const student1 = await prisma.user.create({
-    data: {
-      email: 'siswa1@ekskul.com',
-      password: student1Password,
-      nama: 'Budi Santoso',
-      role: 'SISWA',
-      studentProfile: {
-        create: {
-          nis: '10001',
-          kelas: '10A',
-        }
-      }
+      hari: 'RABU' as DayOfWeek,
+      jamMulai: '15:30',
+      jamSelesai: '17:00',
+      lokasi: 'Lapangan Futsal',
+      coachId: coachFutsal.coachProfile.id,
     },
-    include: {
-      studentProfile: true
-    }
-  })
-  console.log('✅ Student 1 created:', student1.email)
-
-  const student2Password = await bcrypt.hash('student123', 10)
-  const student2 = await prisma.user.create({
-    data: {
-      email: 'siswa2@ekskul.com',
-      password: student2Password,
-      nama: 'Ani Wijaya',
-      role: 'SISWA',
-      studentProfile: {
-        create: {
-          nis: '10002',
-          kelas: '10B',
-        }
-      }
+    {
+      nama: 'Teater',
+      kode: 'TEATER',
+      deskripsi: 'Ekstrakurikuler Teater',
+      hari: 'JUMAT' as DayOfWeek,
+      jamMulai: '14:30',
+      jamSelesai: '16:00',
+      lokasi: 'Aula Sekolah',
+      coachId: coachTeater.coachProfile.id,
     },
-    include: {
-      studentProfile: true
-    }
+  ]
+
+  const ekskuls = await Promise.all(
+    ekskulData.map((ekskul) =>
+      prisma.ekskul.upsert({
+        where: { kode: ekskul.kode },
+        update: ekskul,
+        create: ekskul,
+      })
+    )
+  )
+  console.log('Ekskul ready:', ekskuls.map((ekskul) => ekskul.kode).join(', '))
+
+  const student1 = await ensureStudent('siswa1@ekskul.com', 'Budi Santoso', '10001', '10A')
+  const student2 = await ensureStudent('siswa2@ekskul.com', 'Ani Wijaya', '10002', '10B')
+
+  await prisma.studentEkskul.upsert({
+    where: {
+      studentId_ekskulId: {
+        studentId: student1.studentProfile.id,
+        ekskulId: ekskuls[0].id,
+      },
+    },
+    update: {
+      isActive: true,
+    },
+    create: {
+      studentId: student1.studentProfile.id,
+      ekskulId: ekskuls[0].id,
+    },
   })
-  console.log('✅ Student 2 created:', student2.email)
 
-  // Enroll students to ekstrakurikuler
-  await prisma.studentEkskul.create({
-    data: {
-      studentId: student1.studentProfile!.id,
-      ekskulId: basket.id,
-    }
+  await prisma.studentEkskul.upsert({
+    where: {
+      studentId_ekskulId: {
+        studentId: student2.studentProfile.id,
+        ekskulId: ekskuls[1].id,
+      },
+    },
+    update: {
+      isActive: true,
+    },
+    create: {
+      studentId: student2.studentProfile.id,
+      ekskulId: ekskuls[1].id,
+    },
   })
 
-  await prisma.studentEkskul.create({
-    data: {
-      studentId: student2.studentProfile!.id,
-      ekskulId: futsal.id,
-    }
-  })
-
-  console.log('✅ Students enrolled to ekstrakurikuler')
-
-  console.log('✅ Seed completed!')
+  console.log('Students ready and enrolled')
+  console.log('Seed completed!')
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e)
+    console.error('Seed failed:', e)
     process.exit(1)
   })
   .finally(async () => {

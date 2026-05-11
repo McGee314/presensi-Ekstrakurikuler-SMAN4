@@ -6,6 +6,8 @@ import { writeFile } from 'fs/promises'
 import path from 'path'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const uploadTemplateSchema = z.object({
   semester: z.string(),
   description: z.string().optional(),

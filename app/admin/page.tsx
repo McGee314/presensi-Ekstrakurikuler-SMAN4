@@ -16,6 +16,7 @@ export default async function AdminPage() {
     include: {
       studentProfile: true,
       coachProfile: true,
+      supervisorProfile: true,
     },
     orderBy: {
       createdAt: 'desc'
@@ -31,10 +32,22 @@ export default async function AdminPage() {
       },
       _count: {
         select: {
-          studentEkskul: true
+          studentEkskul: true,
+          attendanceSessions: true,
         }
       }
     }
+  })
+
+  const coaches = await prisma.coachProfile.findMany({
+    include: {
+      user: true,
+    },
+    orderBy: {
+      user: {
+        nama: 'asc',
+      },
+    },
   })
 
   const templates = await prisma.formatTemplate.findMany({
@@ -48,6 +61,7 @@ export default async function AdminPage() {
       user={session.user}
       users={users}
       ekskuls={ekskuls}
+      coaches={coaches}
       templates={templates}
     />
   )
